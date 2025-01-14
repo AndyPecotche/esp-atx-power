@@ -1,0 +1,108 @@
+<!DOCTYPE HTML>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ESP32 Web Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #121212;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+        .button {
+            width: 250px;
+            padding: 20px;
+            font-size: 20px;
+            color: #fff;
+            background-color: #333;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.3s ease, background-color 0.3s ease;
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+        }
+        .button.active {
+            background-color: #ff7f00 !important;
+        }
+        .button:hover:not(.active) {
+            background-color: #555;
+            transform: translateY(-5px);
+        }
+        .button:active {
+            transform: translateY(2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button id="status" class="button">STATUS</button>
+        <button id="pwr" class="button">PWR</button>
+        <button id="rst" class="button">RST</button>
+        <button id="fpwr" class="button">FPWR</button>
+    </div>
+    <script>
+        var gateway = `wss://${window.location.hostname}/ws`;
+        var websocket;
+        window.addEventListener('load', init);
+        function init() {
+            initWebSocket();
+            document.getElementById('pwr').addEventListener('click', () => sendCommand('PWR'));
+            document.getElementById('fpwr').addEventListener('click', () => sendCommand('FPWR'));
+            document.getElementById('rst').addEventListener('click', () => sendCommand('RST'));
+            document.getElementById('pwr').addEventListener('touchstart', () => touchStart('pwr'));
+            document.getElementById('rst').addEventListener('touchstart', () => touchStart('rst'));
+            document.getElementById('pwr').addEventListener('touchend', () => touchEnd('pwr'));
+            document.getElementById('rst').addEventListener('touchend', () => touchEnd('rst'));
+        }
+        function initWebSocket() {
+            websocket = new WebSocket(gateway);
+            websocket.onmessage = handleWebSocketMessage;
+        }
+        function sendCommand(command) {
+            websocket.send(command);
+        }
+        function handleWebSocketMessage(event) {
+            const data = event.data;
+            const pwrButton = document.getElementById('pwr');
+            const rstButton = document.getElementById('rst');
+            const statusButton = document.getElementById('status');
+            if (data === "PWR_PRESS") {
+                setButtonState(pwrButton, true);
+            } else if (data === "PWR_REL") {
+                setButtonState(pwrButton, false);
+            } else if (data === "RST_PRESS") {
+                setButtonState(rstButton, true);
+            } else if (data === "RST_REL") {
+                setButtonState(rstButton, false);
+            } else if (data === "ON") {
+                setButtonState(statusButton, true);
+            } else if (data === "OFF") {
+                setButtonState(statusButton, false);
+            }
+        }
+
+        function setButtonState(button, isActive) {
+            if (isActive) {
+                button.classList.add('active');
+            } else {
+                button.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>
